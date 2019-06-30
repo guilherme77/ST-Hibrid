@@ -1,35 +1,47 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Jun  5 18:38:12 2019
+Created on Sat Jun 29 21:19:17 2019
 
 @author: Guilherme
 """
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import sklearn.metrics as metrics
 from sklearn import svm
 
-C_r = [10**(-1), 10**(0), 10**(1), 10**(2)]
-Epsilon_r = [10**(-4), 10**(-3), 10**(-2)]
-Gamma_r = [2**(-5), 2**(-4), 2**(-3), 2**(-2), 2**(-1), 2**(0), 2**(1), 2**(2)]
+Cr = [10**(-1), 10**(0), 10**(1), 10**(2)]
+epsilonr = [10**(-4), 10**(-3), 10**(-2)]
+gammar = [2**(-5), 2**(-4), 2**(-3), 2**(-2), 2**(-1), 2**(0), 2**(1), 2**(2)]
     
-def gridSVR(X_train,Y_train,X_val,Y_val):
+def gridSVR(X_trein,Y_trein,X_val,Y_val):
+   bestParam=(0,0,0)
+   bestModel=1
+   bestError=99999999999999999999999999999999999999999999
    
-    
+   for c in Cr:
+       for eps in epsilonr:
+           for gam in gammar:
+               svr = svm.SVR(gamma=10**gam, C=10**c, epsilon=10**eps)
+               svr.fit(X_trein,Y_trein)
+               predicts=svr.predict(X_val)
+               mse = metrics.mean_squared_error(predicts,Y_val)
+               
+               if(mse<bestError):
+                   bestParam = (c,eps,gam)
+                   bestModel = svr
+                   bestError = mse
+                   bestPredicts = predicts
+                   print mse
+                   print bestError
+                   print bestParam
+                   
+   return (bestModel,bestPredicts,bestError,bestParam)
+               
 
 def processdata(datafile,dimension, valid = True):
-"""
-    def normalizaDados(dados):
-    mi = min(dados)
-    ma = max(dados)
-    data = []
-    for x in range(len(dados)):
-        value = (dados[x] - mi)/(ma-mi)
-        data.append(value)
 
-    return np.array(data)
-"""
     data = np.loadtxt(datafile)
     serie = pd.Series(data)
     laggedata = pd.concat([serie.shift(i) for i in range(dimension+1)],axis=1 )
