@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Jun  5 17:28:32 2019
+Created on Wed Jun  5 15:07:57 2019
 
 @author: Guilherme
 """
@@ -8,39 +8,7 @@ Created on Wed Jun  5 17:28:32 2019
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn import metrics
-from sklearn.neural_network import MLPRegressor
-
-def gridMLP(X_train,Y_train,X_val,Y_val):      
-                         
-    activation = ['a','x']
-    solver = ['c']
-    alpha = np.linspace(0.0001, 0.001, 5)
-    
-    best_erro = 999999999999999999999999999999999999999999999999999999999999999999999**999
-
-    
-    for a in activation:
-        for b in solver:
-            for c in alpha:
-                mlp = MLPRegressor(activation = a, solver = b, alpha = c)
-                mlp.fit(X_train, Y_train)
-                
-                predict = mlp.predict(X_val)
-                erro = metrics.mean_squared_error(Y_val, predict)
-                
-                if erro < best_erro:
-                    
-                    best_erro = erro
-                    best_model = mlp
-                    best_param = (a, b, c)
-                    best_predicts = predict
-                    
-                    print best_param
-                    print best_erro
-                    
-    
-    return (best_model, best_predicts, best_erro, best_param)
+import sklearn.metrics as metrics
 
 def processdata(datafile,dimension, valid = True):
 
@@ -63,7 +31,7 @@ def processdata(datafile,dimension, valid = True):
     
     if valid == True:
         
-        trainindex=int(np.floor(0.8*len(data)))
+        trainindex=int(np.floor(0.7*len(data)))
         valindex=int(np.floor(0.8*len(data)))
          
         #Treinamento
@@ -80,40 +48,41 @@ def processdata(datafile,dimension, valid = True):
         
         return (trainset,traintarget,valset,valtarget,testset,testtarget)
 
-
-def createmodel(trainset,traintarget,valset,valtarget, opmodel):
-    if opmodel == 'MLP':
-        (best_model, best_predicts, best_erro, best_param) = gridMLP(trainset,traintarget,valset,valtarget)
-        return best_model
-    
-  
-
 def predict(testset,testtarget,model):
   
     predicts = model.predict(testset)
     erro = metrics.mean_squared_error(testtarget,predicts)
 
-    return (predicts,erro)        
+    return (predicts,erro)
 
-dimension = 1
+def createmodelAR(trainset,traintarget,dimension):    
+    trainset[dimension+1]=1 
+    coefs = np.linalg.pinv(trainset).dot(traintarget)
+    print coefs
+    return coefs
+
+def predictAR(coefs,testset,testtarget,dimension):
+    
+    testset[dimension+1]=1
+    predicts = testset.dot(coefs)
+    erro = metrics.mean_squared_error(testtarget, predicts)
+
+    return (predicts, erro)
+
+dimension = 25
 datafile = 'credito.txt'
 
-(data_set, data_target, val_set, val_target, pred_set, pred_target) = processdata(datafile , dimension)
+#AutoRegressivo
 
-#MLP
+(train_set, train_target, test_set, test_target) = processdata(datafile, dimension, valid=False)
+coefs = createmodelAR(train_set, train_target, dimension)
+(pred_AR, erro_AR) = predictAR(coefs, test_set, test_target, dimension) 
 
-mlp_reg = createmodel(data_set, data_target, val_set, val_target, 'MLP')
-(pred_mlp, erro_mlp) = predict(pred_set, pred_target, mlp_reg)
+print 'AR  Erro: %.4f' %erro_AR
+#print 'AR  pred: %s' %pred_AR
 
-print 'MlP Erro: ' %erro_mlp
-
-
-
-x = range(len(pred_target))
-
-plt.plot(x, pred_target, 'r--', label = 'Real')
-plt.plot(x, pred_mlp, label = 'MLP predicted')
+plt.plot(test_target, 'r--', label = 'Real')
+plt.plot(pred_AR, label = 'AR predicted')
 plt.legend()
 plt.figure
-
 
